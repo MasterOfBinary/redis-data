@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/MasterOfBinary/redistypes/internal"
 	"github.com/garyburd/redigo/redis"
 	"github.com/rafaeljusto/redigomock"
+	"github.com/stretchr/testify/assert"
 )
 
 func getTestConn() (redis.Conn, error) {
@@ -26,9 +28,10 @@ func getTestConn() (redis.Conn, error) {
 }
 
 func TestRedisList_RPush(t *testing.T) {
-	_, err := getTestConn()
-	if err != nil {
-		t.Error("Unable to get connection, err:", err)
-	}
+	netConn, errDial := net.Dial("tcp", internal.GetHostAndPort())
+	assert.Nil(t, errDial)
+
+	conn := redis.NewConn(netConn, time.Second, time.Second)
+	defer conn.Close()
 
 }

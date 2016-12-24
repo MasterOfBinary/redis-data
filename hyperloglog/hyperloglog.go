@@ -15,20 +15,26 @@ type HyperLogLog interface {
 	// Name returns the name of the HyperLogLog.
 	Name() string
 
-	// Add adds items to the HyperLogLog count. It returns an error or true if at
-	// least one internal register was altered, or false otherwise.
+	// Add implements the Redis command PFADD. It adds items to the HyperLogLog count. It returns an error or true
+	// if at least one internal register was altered, or false otherwise.
 	//
 	// See https://redis.io/commands/pfadd.
 	Add(args ...interface{}) (bool, error)
 
-	// Count returns the count of unique items added to the HyperLogLog, or an
-	// error if something went wrong.
+	// Count implements the Redis command PFCOUNT. It returns the count of unique items added to the HyperLogLog,
+	// or an error if something went wrong.
+	//
+	// Count uses a single flight group to ensure the command is only run once for each call to Count for a single
+	// HyperLogLog.
 	//
 	// See https://redis.io/commands/pfcount.
 	Count() (uint64, error)
 
-	// Merge merges the HyperLogLog with other to produce a new HyperLogLog with
-	// a given name. It returns an error or the newly created HyperLogLog.
+	// Merge implements the Redis command PFMERGE. It merges the HyperLogLog with other to produce a new
+	// HyperLogLog with given name. It returns an error or the newly created HyperLogLog.
+	//
+	// Merge uses a single flight group to ensure the PFMERGE command is only in-flight once at a time for each
+	// call to Merge on the same HyperLogLog and the same name and other.Name().
 	//
 	// See https://redis.io/commands/pfmerge.
 	Merge(name string, other HyperLogLog) (HyperLogLog, error)
@@ -64,12 +70,8 @@ func (r *redisHyperLogLog) Count() (uint64, error) {
 }
 
 func (r *redisHyperLogLog) Merge(name string, other HyperLogLog) (HyperLogLog, error) {
-	args := make([]interface{}, 3)
-	args[0] = name
-	args[1] = r.name
-	args[2] = other.Name()
 	_, err := redis.String(r.sync.Do("PFMERGE:"+name+":"+other.Name(), func() (interface{}, error) {
-		return r.conn.Do("PFMERGE", args...)
+		return r.conn.Do("PFMERGE", name, r.name, other.Name())
 	}))
 
 	if err != nil {

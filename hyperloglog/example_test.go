@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/MasterOfBinary/redistypes/hyperloglog"
+	"github.com/MasterOfBinary/redistypes/internal"
 	"github.com/garyburd/redigo/redis"
 )
 
 func Example() {
-	netConn, errDial := net.Dial("tcp", "127.0.0.1:6379")
+	netConn, errDial := net.Dial("tcp", internal.GetHostAndPort())
 	if errDial != nil {
 		fmt.Printf("Unable to dial, err: %v", errDial)
 		return
@@ -19,7 +20,7 @@ func Example() {
 	conn := redis.NewConn(netConn, time.Second, time.Second)
 	defer conn.Close()
 
-	hll := hyperloglog.NewRedisHyperLogLog(conn, "hll")
+	hll := hyperloglog.NewRedisHyperLogLog(conn, internal.RandomKey())
 
 	count, errCount := hll.Count()
 	if errCount != nil {
