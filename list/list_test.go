@@ -88,6 +88,12 @@ func verifySlice(t *testing.T, l list.List, wantCount int, scenarios []scenarioS
 	}
 }
 
+func TestRedisHyperLogLog_Name(t *testing.T) {
+	name := test.RandomKey()
+	l := list.NewRedisList(conn, name)
+	assert.Equal(t, name, l.Name())
+}
+
 func TestRedisList_LeftPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
 
