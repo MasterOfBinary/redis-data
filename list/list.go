@@ -1,4 +1,4 @@
-package redistypes
+package list
 
 import (
 	"github.com/MasterOfBinary/redistypes/internal"
@@ -55,6 +55,6 @@ func (r *redisList) LPushX(args ...interface{}) (uint64, error) {
 
 func (r *redisList) LRange(start, stop int64) ([]interface{}, error) {
 	return redis.Values(r.sync.Do("LRANGE", func() (interface{}, error) {
-		return r.conn.Do("LRANGE", l.name, start, stop)
+		return r.conn.Do("LRANGE", r.name, start, stop)
 	}))
 }

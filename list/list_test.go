@@ -1,4 +1,4 @@
-package redistypes
+package list_test
 
 import (
 	"net"
