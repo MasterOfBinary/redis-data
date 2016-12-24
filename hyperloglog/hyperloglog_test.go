@@ -40,7 +40,7 @@ func ExampleNewRedisHyperLogLog() {
 
 func TestRedisHyperLogLog_Name(t *testing.T) {
 	name := test.RandomKey()
-	hll := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
+	hll := hyperloglog.NewRedisHyperLogLog(conn, name)
 	assert.Equal(t, name, hll.Name())
 }
 
