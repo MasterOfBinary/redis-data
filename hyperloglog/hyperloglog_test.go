@@ -48,35 +48,34 @@ func TestRedisHyperLogLog_Add(t *testing.T) {
 
 	scenarios := []struct {
 		name     string
-		add      []string
+		add      []interface{}
 		modified bool
 	}{
 		{
 			name:     "add several unique items",
-			add:      []string{"abc", "def", "ghi"},
+			add:      test.StringsToInterfaceSlice("abc", "def", "ghi"),
 			modified: true,
 		},
 		{
 			name:     "add an item that was already added",
-			add:      []string{"abc", "abc"},
+			add:      test.StringsToInterfaceSlice("abc", "abc"),
 			modified: false,
 		},
 		{
 			name:     "add a new item and an existing item",
-			add:      []string{"abc", "jkl"},
+			add:      test.StringsToInterfaceSlice("abc", "jkl"),
 			modified: true,
 		},
 		{
 			name:     "no items to add",
-			add:      []string{},
+			add:      make([]interface{}, 0),
 			modified: false,
 		},
 	}
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			args := test.StringsToInterfaceSlice(scenario.add...)
-			modified, err := hll.Add(args...)
+			modified, err := hll.Add(scenario.add...)
 			assert.Nil(t, err)
 			assert.Equal(t, scenario.modified, modified)
 		})

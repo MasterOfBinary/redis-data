@@ -32,5 +32,5 @@ func IntsToInterfaceSlice(ints ...int) []interface{} {
 // RandomKey returns a key of the form test:<number>, where <number> is a random number. It is used for
 // testing Redis data types using random keys.
 func RandomKey() string {
-	return fmt.Sprint("test:" + strconv.Itoa(rand.Int()))
+	return fmt.Sprint("testkey" + strconv.Itoa(rand.Int()))
 }

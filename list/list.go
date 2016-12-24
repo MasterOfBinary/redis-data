@@ -13,13 +13,13 @@ import (
 type List interface {
 	Name() string
 
-	RPush(arg ...interface{}) (uint64, error)
+	RPush(args ...interface{}) (uint64, error)
 
-	RPushX(arg ...interface{}) (uint64, error)
+	RPushX(args ...interface{}) (uint64, error)
 
-	LPush(arg ...interface{}) (uint64, error)
+	LPush(args ...interface{}) (uint64, error)
 
-	LPushX(arg ...interface{}) (uint64, error)
+	LPushX(args ...interface{}) (uint64, error)
 
 	LRange(start, stop int64) ([]interface{}, error)
 }
