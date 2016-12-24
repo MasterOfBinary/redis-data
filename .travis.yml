@@ -8,11 +8,15 @@ go:
 services:
  - redis-server
 
+before_install:
+ - go get github.com/mattn/goveralls
+
 install:
  - go get -t ./...
 
 script:
  - go test -v ./...
+ - $HOME/gopath/bin/goveralls -service=travis-ci
 
 notifications:
   email: false
