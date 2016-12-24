@@ -28,24 +28,44 @@ type scenarioStruct struct {
 }
 
 func ExampleNewRedisList() {
-	netConn, errDial := net.Dial("tcp", internal.GetHostAndPort())
-	if errDial != nil {
-		fmt.Printf("Unable to dial, err: %v", errDial)
-		return
-	}
+	netConn, _ := net.Dial("tcp", internal.GetHostAndPort())
 
 	conn := redis.NewConn(netConn, time.Second, time.Second)
 	defer conn.Close()
 
 	l := list.NewRedisList(conn, test.RandomKey())
 
-	items, errRange := l.Range(0, -1)
-	if errRange != nil {
-		fmt.Printf("Unable to get range, err: %v", errRange)
-		return
-	}
-	fmt.Println("Count:", len(items))
+	values, _ := l.Range(0, -1)
+	fmt.Println("Count:", len(values))
 	// Output: Count: 0
+}
+
+func ExampleRedisList_Range() {
+	netConn, _ := net.Dial("tcp", internal.GetHostAndPort())
+
+	conn := redis.NewConn(netConn, time.Second, time.Second)
+	defer conn.Close()
+
+	l := list.NewRedisList(conn, test.RandomKey())
+
+	_, _ = l.RightPush("hello", "world", "how", "are", "you", "today")
+
+	// Get the entire range
+	values, _ := redis.Strings(l.Range(0, -1))
+	fmt.Println(values)
+
+	// Starting from the middle
+	values, _ = redis.Strings(l.Range(2, -1))
+	fmt.Println(values)
+
+	// From beginning to middle
+	values, _ = redis.Strings(l.Range(0, 1))
+	fmt.Println(values)
+
+	// Output:
+	// [hello world how are you today]
+	// [how are you today]
+	// [hello world]
 }
 
 func verifySlice(t *testing.T, l list.List, wantCount int, scenarios []scenarioStruct, reverse bool) {

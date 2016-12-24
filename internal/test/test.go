@@ -1,3 +1,4 @@
+// Package test contains functions used for testing in redistypes.
 package test
 
 import (
@@ -33,6 +34,8 @@ func IntsToInterfaceSlice(ints ...int) []interface{} {
 	return args
 }
 
+// AssertEqual checks if got, returned from redis, is equal to want, a string or an int. If not equal
+// it will cause the test to fail.
 func AssertEqual(t *testing.T, want interface{}, got interface{}) {
 	switch want.(type) {
 	case int:
