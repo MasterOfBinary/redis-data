@@ -11,6 +11,8 @@ import (
 
 // List provides functionality for Redis lists.
 type List interface {
+	Name() string
+
 	RPush(arg ...interface{}) (uint64, error)
 
 	RPushX(arg ...interface{}) (uint64, error)
@@ -36,6 +38,10 @@ func NewRedisList(conn redis.Conn, name string) List {
 	}
 }
 
+func (r redisList) Name() string {
+	return r.name
+}
+
 func (r *redisList) RPush(args ...interface{}) (uint64, error) {
 	args = internal.PrependInterface(r.name, args...)
 	return redis.Uint64(r.conn.Do("RPUSH", args...))
@@ -53,7 +59,7 @@ func (r *redisList) LPush(args ...interface{}) (uint64, error) {
 
 func (r *redisList) LPushX(args ...interface{}) (uint64, error) {
 	args = internal.PrependInterface(r.name, args...)
-	return redis.Uint64(r.conn.Do("LPUSHS", args...))
+	return redis.Uint64(r.conn.Do("LPUSHX", args...))
 }
 
 func (r *redisList) LRange(start, stop int64) ([]interface{}, error) {

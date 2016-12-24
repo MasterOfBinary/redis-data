@@ -11,11 +11,20 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-// StringSliceToInterfaceSlice converts strings to a slice of interfaces containing the strings.
-func StringSliceToInterfaceSlice(strings []string) []interface{} {
+// StringsToInterfaceSlice converts strings to a slice of interfaces containing the strings.
+func StringsToInterfaceSlice(strings ...string) []interface{} {
 	args := make([]interface{}, len(strings))
 	for i, str := range strings {
 		args[i] = str
+	}
+	return args
+}
+
+// IntsToInterfaceSlice converts ints to a slice of interfaces containing the ints.
+func IntsToInterfaceSlice(ints ...int) []interface{} {
+	args := make([]interface{}, len(ints))
+	for i, num := range ints {
+		args[i] = num
 	}
 	return args
 }

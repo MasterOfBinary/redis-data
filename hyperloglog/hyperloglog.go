@@ -58,7 +58,7 @@ func (r redisHyperLogLog) Name() string {
 	return r.name
 }
 
-func (r *redisHyperLogLog) Add(args ...interface{}) (bool, error) {
+func (r redisHyperLogLog) Add(args ...interface{}) (bool, error) {
 	args = internal.PrependInterface(r.name, args...)
 	return redis.Bool(r.conn.Do("PFADD", args...))
 }

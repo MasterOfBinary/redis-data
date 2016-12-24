@@ -75,7 +75,7 @@ func TestRedisHyperLogLog_Add(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			args := test.StringSliceToInterfaceSlice(scenario.add)
+			args := test.StringsToInterfaceSlice(scenario.add...)
 			modified, err := hll.Add(args...)
 			assert.Nil(t, err)
 			assert.Equal(t, scenario.modified, modified)
@@ -117,7 +117,7 @@ func TestRedisHyperLogLog_Count(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			args := test.StringSliceToInterfaceSlice(scenario.add)
+			args := test.StringsToInterfaceSlice(scenario.add...)
 			_, err := hll.Add(args...)
 			assert.Nil(t, err)
 			want += scenario.added
@@ -163,8 +163,8 @@ func TestRedisHyperLogLog_Merge(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			args1 := test.StringSliceToInterfaceSlice(scenario.add1)
-			args2 := test.StringSliceToInterfaceSlice(scenario.add2)
+			args1 := test.StringsToInterfaceSlice(scenario.add1...)
+			args2 := test.StringsToInterfaceSlice(scenario.add2...)
 
 			hll1 := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
 			hll2 := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())

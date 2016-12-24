@@ -26,7 +26,7 @@ func TestStringSliceToInterfaceSlice(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := StringSliceToInterfaceSlice(scenario.input)
+			got := StringsToInterfaceSlice(scenario.input...)
 
 			assert.Equal(t, len(scenario.input), len(got))
 

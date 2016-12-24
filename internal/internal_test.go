@@ -39,7 +39,7 @@ func TestPrependInterface(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			t.Parallel()
 
-			args := test.StringSliceToInterfaceSlice(scenario.args)
+			args := test.StringsToInterfaceSlice(scenario.args...)
 
 			got := PrependInterface(scenario.first, args...)
 			if len(got) != 1+len(scenario.args) {
