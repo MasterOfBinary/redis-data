@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	rand.Seed(time.Now().Unix())
+	rand.Seed(time.Now().UnixNano())
 }
 
 // StringsToInterfaceSlice converts strings to a slice of interfaces containing the strings.
