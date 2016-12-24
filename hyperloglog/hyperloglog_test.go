@@ -186,7 +186,8 @@ func TestRedisHyperLogLog_Merge(t *testing.T) {
 func TestMain(m *testing.M) {
 	netConn, err := net.Dial("tcp", internal.GetHostAndPort())
 	if err != nil {
-		fmt.Errorf("Error opening net onnection, err: %v", err)
+		fmt.Printf("Error opening net onnection, err: %v", err)
+		os.Exit(1)
 	}
 
 	conn = redis.NewConn(netConn, time.Second, time.Second)

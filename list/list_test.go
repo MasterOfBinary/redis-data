@@ -376,6 +376,7 @@ func TestMain(m *testing.M) {
 	netConn, err := net.Dial("tcp", internal.GetHostAndPort())
 	if err != nil {
 		fmt.Printf("Error opening net connection, err: %v", err)
+		os.Exit(1)
 	}
 
 	conn = redis.NewConn(netConn, time.Second, time.Second)
