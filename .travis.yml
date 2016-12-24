@@ -16,6 +16,8 @@ install:
 
 script:
  - go test -v ./...
+
+after_script:
  - $HOME/gopath/bin/goveralls -service=travis-ci
 
 notifications:
