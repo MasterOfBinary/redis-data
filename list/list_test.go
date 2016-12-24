@@ -39,7 +39,7 @@ func ExampleNewRedisList() {
 
 	l := list.NewRedisList(conn, test.RandomKey())
 
-	items, errRange := l.LRange(0, -1)
+	items, errRange := l.Range(0, -1)
 	if errRange != nil {
 		fmt.Printf("Unable to get range, err: %v", errRange)
 		return
@@ -49,7 +49,7 @@ func ExampleNewRedisList() {
 }
 
 func verifySlice(t *testing.T, l list.List, wantCount int, scenarios []scenarioStruct, reverse bool) {
-	got, err := l.LRange(0, -1)
+	got, err := l.Range(0, -1)
 	assert.Nil(t, err)
 	assert.EqualValues(t, wantCount, len(got))
 	assert.Len(t, got, wantCount)
@@ -68,7 +68,31 @@ func verifySlice(t *testing.T, l list.List, wantCount int, scenarios []scenarioS
 	}
 }
 
-func TestRedisList_RPush(t *testing.T) {
+func TestRedisList_LeftPop(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+
+	t.Run("non-existing key", func(t *testing.T) {
+		item, err := l.LeftPop()
+		assert.Nil(t, err)
+		assert.Nil(t, item)
+	})
+
+	t.Run("list with one item", func(t *testing.T) {
+		_, _ = l.LeftPush("abc")
+		item, err := redis.String(l.LeftPop())
+		assert.Nil(t, err)
+		assert.EqualValues(t, "abc", item)
+	})
+
+	t.Run("list with multiple items", func(t *testing.T) {
+		_, _ = l.LeftPush("def", "ghi")
+		item, err := redis.String(l.LeftPop())
+		assert.Nil(t, err)
+		assert.EqualValues(t, "ghi", item)
+	})
+}
+
+func TestRedisList_LeftPush(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
 
 	scenarios := []scenarioStruct{
@@ -99,7 +123,7 @@ func TestRedisList_RPush(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			count, err := l.RPush(scenario.add...)
+			count, err := l.LeftPush(scenario.add...)
 			if scenario.wantErr {
 				assert.NotNil(t, err)
 			} else {
@@ -111,20 +135,20 @@ func TestRedisList_RPush(t *testing.T) {
 	}
 
 	t.Run("verify list data", func(t *testing.T) {
-		verifySlice(t, l, wantCount, scenarios, forwardSlice)
+		verifySlice(t, l, wantCount, scenarios, reverseSlice)
 	})
 }
 
-func TestRedisList_RPushX(t *testing.T) {
+func TestRedisList_LeftPushX(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
 
 	t.Run("non-existing key", func(t *testing.T) {
-		count, err := l.RPushX("abc")
+		count, err := l.LeftPushX("abc")
 		assert.Nil(t, err)
 		assert.EqualValues(t, 0, count)
 	})
 
-	_, _ = l.RPush("abc")
+	_, _ = l.RightPush("abc")
 
 	scenarios := []scenarioStruct{
 		{
@@ -141,7 +165,7 @@ func TestRedisList_RPushX(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			count, err := l.RPushX(scenario.add[0])
+			count, err := l.LeftPushX(scenario.add[0])
 			if scenario.wantErr {
 				assert.NotNil(t, err)
 			} else {
@@ -152,16 +176,84 @@ func TestRedisList_RPushX(t *testing.T) {
 		})
 	}
 
-	// Pop the one added by RPush
-	_, _ = l.LPop()
+	// Pop the one added by RightPush
+	_, _ = l.RightPop()
 	wantCount--
 
 	t.Run("verify list data", func(t *testing.T) {
-		verifySlice(t, l, wantCount, scenarios, forwardSlice)
+		verifySlice(t, l, wantCount, scenarios, reverseSlice)
 	})
 }
 
-func TestRedisList_LPush(t *testing.T) {
+func TestRedisList_Range(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+
+	t.Run("non-existing key", func(t *testing.T) {
+		items, err := l.Range(0, -1)
+		assert.Nil(t, err)
+		assert.Empty(t, items)
+	})
+
+	added := test.StringsToInterfaceSlice("abc", "def", "ghi")
+	added = append(added, 5)
+	added = append(added, "jkl")
+	added = append(added, 10)
+
+	_, _ = l.RightPush(added...)
+
+	t.Run("full range", func(t *testing.T) {
+		items, err := l.Range(0, -1)
+		assert.Nil(t, err)
+		assert.Len(t, items, len(added))
+		for i, item := range items {
+			test.AssertEqual(t, added[i], item)
+		}
+	})
+
+	t.Run("from start to middle", func(t *testing.T) {
+		items, err := l.Range(0, 2)
+		assert.Nil(t, err)
+		assert.Len(t, items, 3)
+		for i, item := range items {
+			test.AssertEqual(t, added[i], item)
+		}
+	})
+
+	t.Run("from middle to end", func(t *testing.T) {
+		items, err := l.Range(3, -1)
+		assert.Nil(t, err)
+		assert.Len(t, items, 3)
+		for i, item := range items {
+			test.AssertEqual(t, added[i+3], item)
+		}
+	})
+}
+
+func TestRedisList_RightPop(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+
+	t.Run("non-existing key", func(t *testing.T) {
+		item, err := l.RightPop()
+		assert.Nil(t, err)
+		assert.Nil(t, item)
+	})
+
+	t.Run("list with one item", func(t *testing.T) {
+		_, _ = l.RightPush("abc")
+		item, err := redis.String(l.RightPop())
+		assert.Nil(t, err)
+		assert.EqualValues(t, "abc", item)
+	})
+
+	t.Run("list with multiple items", func(t *testing.T) {
+		_, _ = l.RightPush("def", "ghi")
+		item, err := redis.String(l.RightPop())
+		assert.Nil(t, err)
+		assert.EqualValues(t, "ghi", item)
+	})
+}
+
+func TestRedisList_RightPush(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
 
 	scenarios := []scenarioStruct{
@@ -192,7 +284,7 @@ func TestRedisList_LPush(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			count, err := l.LPush(scenario.add...)
+			count, err := l.RightPush(scenario.add...)
 			if scenario.wantErr {
 				assert.NotNil(t, err)
 			} else {
@@ -204,20 +296,20 @@ func TestRedisList_LPush(t *testing.T) {
 	}
 
 	t.Run("verify list data", func(t *testing.T) {
-		verifySlice(t, l, wantCount, scenarios, reverseSlice)
+		verifySlice(t, l, wantCount, scenarios, forwardSlice)
 	})
 }
 
-func TestRedisList_LPushX(t *testing.T) {
+func TestRedisList_RightPushX(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
 
 	t.Run("non-existing key", func(t *testing.T) {
-		count, err := l.LPushX("abc")
+		count, err := l.RightPushX("abc")
 		assert.Nil(t, err)
 		assert.EqualValues(t, 0, count)
 	})
 
-	_, _ = l.RPush("abc")
+	_, _ = l.RightPush("abc")
 
 	scenarios := []scenarioStruct{
 		{
@@ -234,7 +326,7 @@ func TestRedisList_LPushX(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			count, err := l.LPushX(scenario.add[0])
+			count, err := l.RightPushX(scenario.add[0])
 			if scenario.wantErr {
 				assert.NotNil(t, err)
 			} else {
@@ -245,12 +337,12 @@ func TestRedisList_LPushX(t *testing.T) {
 		})
 	}
 
-	// Pop the one added by RPush
-	_, _ = l.RPop()
+	// Pop the one added by RightPush
+	_, _ = l.LeftPop()
 	wantCount--
 
 	t.Run("verify list data", func(t *testing.T) {
-		verifySlice(t, l, wantCount, scenarios, reverseSlice)
+		verifySlice(t, l, wantCount, scenarios, forwardSlice)
 	})
 }
 

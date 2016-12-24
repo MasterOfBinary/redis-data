@@ -13,19 +13,19 @@ import (
 type List interface {
 	Name() string
 
-	RPush(args ...interface{}) (uint64, error)
+	LeftPop() (interface{}, error)
 
-	RPushX(arg interface{}) (uint64, error)
+	LeftPush(args ...interface{}) (uint64, error)
 
-	RPop() (interface{}, error)
+	LeftPushX(arg interface{}) (uint64, error)
 
-	LPush(args ...interface{}) (uint64, error)
+	Range(start, stop int64) ([]interface{}, error)
 
-	LPushX(arg interface{}) (uint64, error)
+	RightPop() (interface{}, error)
 
-	LPop() (interface{}, error)
+	RightPush(args ...interface{}) (uint64, error)
 
-	LRange(start, stop int64) ([]interface{}, error)
+	RightPushX(arg interface{}) (uint64, error)
 }
 
 type redisList struct {
@@ -46,34 +46,34 @@ func (r redisList) Name() string {
 	return r.name
 }
 
-func (r *redisList) RPush(args ...interface{}) (uint64, error) {
-	args = internal.PrependInterface(r.name, args...)
-	return redis.Uint64(r.conn.Do("RPUSH", args...))
+func (r *redisList) LeftPop() (interface{}, error) {
+	return r.conn.Do("LPOP", r.name)
 }
 
-func (r *redisList) RPushX(arg interface{}) (uint64, error) {
-	return redis.Uint64(r.conn.Do("RPUSHX", r.name, arg))
-}
-
-func (r *redisList) RPop() (interface{}, error) {
-	return r.conn.Do("RPOP", r.name)
-}
-
-func (r *redisList) LPush(args ...interface{}) (uint64, error) {
+func (r *redisList) LeftPush(args ...interface{}) (uint64, error) {
 	args = internal.PrependInterface(r.name, args...)
 	return redis.Uint64(r.conn.Do("LPUSH", args...))
 }
 
-func (r *redisList) LPushX(arg interface{}) (uint64, error) {
+func (r *redisList) LeftPushX(arg interface{}) (uint64, error) {
 	return redis.Uint64(r.conn.Do("LPUSHX", r.name, arg))
 }
 
-func (r *redisList) LPop() (interface{}, error) {
-	return r.conn.Do("LPOP", r.name)
-}
-
-func (r *redisList) LRange(start, stop int64) ([]interface{}, error) {
+func (r *redisList) Range(start, stop int64) ([]interface{}, error) {
 	return redis.Values(r.sync.Do("LRANGE", func() (interface{}, error) {
 		return r.conn.Do("LRANGE", r.name, start, stop)
 	}))
+}
+
+func (r *redisList) RightPop() (interface{}, error) {
+	return r.conn.Do("RPOP", r.name)
+}
+
+func (r *redisList) RightPush(args ...interface{}) (uint64, error) {
+	args = internal.PrependInterface(r.name, args...)
+	return redis.Uint64(r.conn.Do("RPUSH", args...))
+}
+
+func (r *redisList) RightPushX(arg interface{}) (uint64, error) {
+	return redis.Uint64(r.conn.Do("RPUSHX", r.name, arg))
 }
