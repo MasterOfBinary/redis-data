@@ -1,6 +1,7 @@
-package redistypes
+package hyperloglog
 
 import (
+	"github.com/MasterOfBinary/redistypes/internal"
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang/groupcache/singleflight"
 )
@@ -50,7 +51,7 @@ func (r redisHyperLogLog) Name() string {
 }
 
 func (r *redisHyperLogLog) Add(args ...interface{}) (bool, error) {
-	args = prependInterface(r.name, args...)
+	args = internal.PrependInterface(r.name, args...)
 	return redis.Bool(r.conn.Do("PFADD", args...))
 }
 
