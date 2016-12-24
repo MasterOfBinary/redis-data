@@ -1,3 +1,4 @@
+// Package internal contains internal functions used by redistypes.
 package internal
 
 // PrependInterface prepends item to args and returns the new interface slice. It does not modify args.

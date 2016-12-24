@@ -1,3 +1,6 @@
+// Package hyperloglog contains a Go implementation of the HyperLogLog data structure in Redis.
+//
+// For more information about how the data structure works, see the Redis documentation or http://antirez.com/news/75.
 package hyperloglog
 
 import (
@@ -7,8 +10,7 @@ import (
 )
 
 // HyperLogLog is a probabilistic data structure that counts the number of unique items
-// added to it. For more information about how the data structure works, see the Redis
-// documentation or http://antirez.com/news/75.
+// added to it.
 type HyperLogLog interface {
 	// Name returns the name of the HyperLogLog.
 	Name() string

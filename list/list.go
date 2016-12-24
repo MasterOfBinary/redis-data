@@ -1,3 +1,6 @@
+// Package list contains a Go implementation of the list data structure in Redis.
+//
+// For more information about how the data structure works, see the Redis documentation.
 package list
 
 import (
