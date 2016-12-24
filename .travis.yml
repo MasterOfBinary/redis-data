@@ -10,7 +10,7 @@ services:
  - redis-server
 
 install:
- - go get github.com/garyburd/redigo/redis
+ - go get -t ./...
 
 script:
  - go test -v ./...
