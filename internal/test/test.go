@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"testing"
 	"time"
+
+	"github.com/garyburd/redigo/redis"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -27,6 +31,19 @@ func IntsToInterfaceSlice(ints ...int) []interface{} {
 		args[i] = num
 	}
 	return args
+}
+
+func AssertEqual(t *testing.T, want interface{}, got interface{}) {
+	switch want.(type) {
+	case int:
+		gotInt, err := redis.Int(got, nil)
+		assert.Nil(t, err)
+		assert.EqualValues(t, want, gotInt)
+	default:
+		gotStr, err := redis.String(got, nil)
+		assert.Nil(t, err)
+		assert.EqualValues(t, want, gotStr)
+	}
 }
 
 // RandomKey returns a key of the form test:<number>, where <number> is a random number. It is used for

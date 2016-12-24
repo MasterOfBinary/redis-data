@@ -15,11 +15,15 @@ type List interface {
 
 	RPush(args ...interface{}) (uint64, error)
 
-	RPushX(args ...interface{}) (uint64, error)
+	RPushX(arg interface{}) (uint64, error)
+
+	RPop() (interface{}, error)
 
 	LPush(args ...interface{}) (uint64, error)
 
-	LPushX(args ...interface{}) (uint64, error)
+	LPushX(arg interface{}) (uint64, error)
+
+	LPop() (interface{}, error)
 
 	LRange(start, stop int64) ([]interface{}, error)
 }
@@ -47,9 +51,12 @@ func (r *redisList) RPush(args ...interface{}) (uint64, error) {
 	return redis.Uint64(r.conn.Do("RPUSH", args...))
 }
 
-func (r *redisList) RPushX(args ...interface{}) (uint64, error) {
-	args = internal.PrependInterface(r.name, args...)
-	return redis.Uint64(r.conn.Do("RPUSHX", args...))
+func (r *redisList) RPushX(arg interface{}) (uint64, error) {
+	return redis.Uint64(r.conn.Do("RPUSHX", r.name, arg))
+}
+
+func (r *redisList) RPop() (interface{}, error) {
+	return r.conn.Do("RPOP", r.name)
 }
 
 func (r *redisList) LPush(args ...interface{}) (uint64, error) {
@@ -57,9 +64,12 @@ func (r *redisList) LPush(args ...interface{}) (uint64, error) {
 	return redis.Uint64(r.conn.Do("LPUSH", args...))
 }
 
-func (r *redisList) LPushX(args ...interface{}) (uint64, error) {
-	args = internal.PrependInterface(r.name, args...)
-	return redis.Uint64(r.conn.Do("LPUSHX", args...))
+func (r *redisList) LPushX(arg interface{}) (uint64, error) {
+	return redis.Uint64(r.conn.Do("LPUSHX", r.name, arg))
+}
+
+func (r *redisList) LPop() (interface{}, error) {
+	return r.conn.Do("LPOP", r.name)
 }
 
 func (r *redisList) LRange(start, stop int64) ([]interface{}, error) {
