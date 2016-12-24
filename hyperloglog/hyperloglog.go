@@ -46,7 +46,8 @@ type redisHyperLogLog struct {
 	sync singleflight.Group
 }
 
-// NewRedisHyperLogLog creates a Redis implementation of HyperLogLog.
+// NewRedisHyperLogLog creates a Redis implementation of HyperLogLog given redigo connection conn and name. The
+// Redis key used to identify the HyperLogLog will be name.
 func NewRedisHyperLogLog(conn redis.Conn, name string) HyperLogLog {
 	return &redisHyperLogLog{
 		conn: conn,
