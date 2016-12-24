@@ -40,7 +40,7 @@ func ExampleNewRedisList() {
 	// Output: Count: 0
 }
 
-func ExampleRedisList_Range() {
+func ExampleList_Range() {
 	netConn, _ := net.Dial("tcp", internal.GetHostAndPort())
 
 	conn := redis.NewConn(netConn, time.Second, time.Second)
