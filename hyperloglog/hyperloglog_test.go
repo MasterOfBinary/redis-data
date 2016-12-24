@@ -3,10 +3,9 @@ package hyperloglog_test
 import (
 	"fmt"
 	"net"
+	"os"
 	"testing"
 	"time"
-
-	"os"
 
 	"github.com/MasterOfBinary/redistypes/hyperloglog"
 	"github.com/MasterOfBinary/redistypes/internal"
