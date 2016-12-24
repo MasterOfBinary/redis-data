@@ -1,6 +1,10 @@
 package internal
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/MasterOfBinary/redistypes/internal/test"
+)
 
 func TestPrependInterface(t *testing.T) {
 	scenarios := []struct {
@@ -35,10 +39,7 @@ func TestPrependInterface(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			t.Parallel()
 
-			args := make([]interface{}, len(scenario.args))
-			for i, arg := range scenario.args {
-				args[i] = arg
-			}
+			args := test.StringSliceToInterfaceSlice(scenario.args)
 
 			got := PrependInterface(scenario.first, args...)
 			if len(got) != 1+len(scenario.args) {

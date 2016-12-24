@@ -7,6 +7,7 @@ import (
 
 	"github.com/MasterOfBinary/redistypes/hyperloglog"
 	"github.com/MasterOfBinary/redistypes/internal"
+	"github.com/MasterOfBinary/redistypes/internal/test"
 	"github.com/garyburd/redigo/redis"
 )
 
@@ -20,7 +21,7 @@ func Example() {
 	conn := redis.NewConn(netConn, time.Second, time.Second)
 	defer conn.Close()
 
-	hll := hyperloglog.NewRedisHyperLogLog(conn, internal.RandomKey())
+	hll := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
 
 	count, errCount := hll.Count()
 	if errCount != nil {
