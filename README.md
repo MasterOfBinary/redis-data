@@ -32,7 +32,7 @@ To download, run
 Redistypes requires the following dependencies:
 
 * https://github.com/golang/groupcache/singleflight
-* https://github.com/garyburd/redigo/redis
+* https://github.com/garyburd/redigo
 
 Example
 -------
