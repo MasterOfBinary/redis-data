@@ -16,6 +16,11 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+// DeleteKey deletes name from Redis.
+func DeleteKey(name string, conn redis.Conn) {
+	_, _ = conn.Do("DEL", name)
+}
+
 // StringsToInterfaceSlice converts strings to a slice of interfaces containing the strings.
 func StringsToInterfaceSlice(strings ...string) []interface{} {
 	args := make([]interface{}, len(strings))
@@ -52,5 +57,5 @@ func AssertEqual(t *testing.T, want interface{}, got interface{}) {
 // RandomKey returns a key of the form test:<number>, where <number> is a random number. It is used for
 // testing Redis data types using random keys.
 func RandomKey() string {
-	return fmt.Sprint("testkey" + strconv.Itoa(rand.Int()))
+	return fmt.Sprint("testkey:" + strconv.Itoa(rand.Int()))
 }

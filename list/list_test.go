@@ -80,18 +80,21 @@ func TestRedisList_Name(t *testing.T) {
 
 func TestRedisList_BlockingLeftPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
+	defer test.DeleteKey(l.Name(), conn)
 
 	blockingPopTest(t, l, leftBlockingPop)
 }
 
 func TestRedisList_BlockingRightPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
+	defer test.DeleteKey(l.Name(), conn)
 
 	blockingPopTest(t, l, rightBlockingPop)
 }
 
 func TestRedisList_LeftPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
+	defer test.DeleteKey(l.Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		item, err := l.LeftPop()
@@ -116,6 +119,7 @@ func TestRedisList_LeftPop(t *testing.T) {
 
 func TestRedisList_LeftPush(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
+	defer test.DeleteKey(l.Name(), conn)
 
 	scenarios := []scenarioStruct{
 		{
@@ -163,6 +167,7 @@ func TestRedisList_LeftPush(t *testing.T) {
 
 func TestRedisList_LeftPushX(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
+	defer test.DeleteKey(l.Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		count, err := l.LeftPushX("abc")
@@ -209,6 +214,7 @@ func TestRedisList_LeftPushX(t *testing.T) {
 
 func TestRedisList_Length(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
+	defer test.DeleteKey(l.Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		len, err := l.Length()
@@ -242,6 +248,7 @@ func TestRedisList_Length(t *testing.T) {
 
 func TestRedisList_Range(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
+	defer test.DeleteKey(l.Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		items, err := l.Range(0, -1)
@@ -286,6 +293,7 @@ func TestRedisList_Range(t *testing.T) {
 
 func TestRedisList_RightPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
+	defer test.DeleteKey(l.Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		item, err := l.RightPop()
@@ -310,6 +318,7 @@ func TestRedisList_RightPop(t *testing.T) {
 
 func TestRedisList_RightPush(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
+	defer test.DeleteKey(l.Name(), conn)
 
 	scenarios := []scenarioStruct{
 		{
@@ -357,6 +366,7 @@ func TestRedisList_RightPush(t *testing.T) {
 
 func TestRedisList_RightPushX(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
+	defer test.DeleteKey(l.Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		count, err := l.RightPushX("abc")
@@ -414,13 +424,6 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func clearList(l list.List) {
-	values, _ := l.Range(0, -1)
-	for range values {
-		_, _ = l.RightPop()
-	}
-}
-
 func verifySlice(t *testing.T, l list.List, wantCount int, scenarios []scenarioStruct, reverse bool) {
 	got, err := l.Range(0, -1)
 	assert.Nil(t, err)
@@ -442,8 +445,6 @@ func verifySlice(t *testing.T, l list.List, wantCount int, scenarios []scenarioS
 }
 
 func blockingPopTest(t *testing.T, l list.List, blockingPop bool) {
-	defer clearList(l)
-
 	t.Run("list with one item", func(t *testing.T) {
 		_, _ = l.LeftPush("abc")
 		var item interface{}

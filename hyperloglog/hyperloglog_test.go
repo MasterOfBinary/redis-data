@@ -45,6 +45,7 @@ func TestRedisHyperLogLog_Name(t *testing.T) {
 
 func TestRedisHyperLogLog_Add(t *testing.T) {
 	hll := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
+	defer test.DeleteKey(hll.Name(),conn)
 
 	scenarios := []struct {
 		name     string
@@ -84,6 +85,7 @@ func TestRedisHyperLogLog_Add(t *testing.T) {
 
 func TestRedisHyperLogLog_Count(t *testing.T) {
 	hll := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
+	defer test.DeleteKey(hll.Name(),conn)
 
 	scenarios := []struct {
 		name  string
@@ -166,7 +168,9 @@ func TestRedisHyperLogLog_Merge(t *testing.T) {
 			args2 := test.StringsToInterfaceSlice(scenario.add2...)
 
 			hll1 := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
+			defer test.DeleteKey(hll1.Name(),conn)
 			hll2 := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
+			defer test.DeleteKey(hll2.Name(),conn)
 
 			_, err := hll1.Add(args1...)
 			assert.Nil(t, err)
