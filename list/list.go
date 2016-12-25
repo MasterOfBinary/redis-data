@@ -3,6 +3,9 @@
 package list
 
 import (
+	"errors"
+	"time"
+
 	"github.com/MasterOfBinary/redistypes/internal"
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang/groupcache/singleflight"
@@ -13,8 +16,30 @@ type List interface {
 	// Name returns the name of the List.
 	Name() string
 
-	// LeftPop implements the Redis command LPOP. It pops the leftmost value from the list and returns it.
-	// If no such value exists, it returns nil.
+	// BlockingLeftPop implements the Redis command BLPOP. It works like LPOP but it
+	// blocks until an element exists in the list or timeout is reached. If the timeout
+	// is reached, nil is returned. A timeout of 0 can be used to block indefinitely.
+	//
+	// Since Redis specifies timeout to be in seconds, millisecond-level precision is
+	// not possible. If the timeout is not a multiple of one second, an error will be
+	// returned.
+	//
+	// See https://redis.io/commands/blpop.
+	BlockingLeftPop(timeout time.Duration) (interface{}, error)
+
+	// BlockingRightPop implements the Redis command BRPOP. It works like RPOP but it
+	// blocks until an element exists in the list or timeout is reached. If the timeout
+	// is reached, nil is returned. A timeout of 0 can be used to block indefinitely.
+	//
+	// Since Redis specifies timeout to be in seconds, millisecond-level precision is
+	// not possible. If the timeout is not a multiple of one second, an error will be
+	// returned.
+	//
+	// See https://redis.io/commands/brpop.
+	BlockingRightPop(timeout time.Duration) (interface{}, error)
+
+	// LeftPop implements the Redis command LPOP. It pops the leftmost value from the
+	// list and returns it. If no such value exists, it returns nil.
 	//
 	// See https://redis.io/commands/lpop.
 	LeftPop() (interface{}, error)
@@ -31,6 +56,12 @@ type List interface {
 	//
 	// See https://redis.io/commands/lpushx.
 	LeftPushX(arg interface{}) (uint64, error)
+
+	// Length implements the Redis command LLEN. It returns the length of the list. If the
+	// list does not already exist, it returns 0.
+	//
+	// See https://redis.io/commands/llen.
+	Length() (uint64, error)
 
 	// Range implements the Redis command LRANGE. It returns a range of values in the list, starting at
 	// index start and ending at index stop. If end is negative, it returns all values from start to the
@@ -78,6 +109,36 @@ func (r redisList) Name() string {
 	return r.name
 }
 
+func (r *redisList) BlockingLeftPop(timeout time.Duration) (interface{}, error) {
+	seconds := int64(timeout.Seconds())
+	if timeout.Nanoseconds()-seconds*time.Second.Nanoseconds() != 0 {
+		return nil, errors.New("Duration is not a multiple of one second")
+	}
+
+	values, err := redis.Values(r.conn.Do("BLPOP", r.name, seconds))
+	if err != nil {
+		return nil, err
+	} else if len(values) != 2 {
+		return nil, errors.New("Unexpected response length")
+	}
+	return values[1], err
+}
+
+func (r *redisList) BlockingRightPop(timeout time.Duration) (interface{}, error) {
+	seconds := int64(timeout.Seconds())
+	if timeout.Nanoseconds()-seconds*time.Second.Nanoseconds() != 0 {
+		return nil, errors.New("Duration is not a multiple of one second")
+	}
+
+	values, err := redis.Values(r.conn.Do("BRPOP", r.name, seconds))
+	if err != nil {
+		return nil, err
+	} else if len(values) != 2 {
+		return nil, errors.New("Unexpected response length")
+	}
+	return values[1], err
+}
+
 func (r *redisList) LeftPop() (interface{}, error) {
 	return r.conn.Do("LPOP", r.name)
 }
@@ -89,6 +150,10 @@ func (r *redisList) LeftPush(args ...interface{}) (uint64, error) {
 
 func (r *redisList) LeftPushX(arg interface{}) (uint64, error) {
 	return redis.Uint64(r.conn.Do("LPUSHX", r.name, arg))
+}
+
+func (r *redisList) Length() (uint64, error) {
+	return redis.Uint64(r.conn.Do("LLEN", r.name))
 }
 
 func (r *redisList) Range(start, stop int64) ([]interface{}, error) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,6 +20,9 @@ var conn redis.Conn
 const (
 	forwardSlice = false
 	reverseSlice = true
+
+	leftBlockingPop  = true
+	rightBlockingPop = false
 )
 
 type scenarioStruct struct {
@@ -68,30 +72,22 @@ func ExampleList_Range() {
 	// [hello world]
 }
 
-func verifySlice(t *testing.T, l list.List, wantCount int, scenarios []scenarioStruct, reverse bool) {
-	got, err := l.Range(0, -1)
-	assert.Nil(t, err)
-	assert.EqualValues(t, wantCount, len(got))
-	assert.Len(t, got, wantCount)
-	i := 0
-	for _, scenario := range scenarios {
-		if !scenario.wantErr {
-			for _, item := range scenario.add {
-				index := i
-				if reverse == reverseSlice {
-					index = len(got) - i - 1
-				}
-				test.AssertEqual(t, item, got[index])
-				i++
-			}
-		}
-	}
-}
-
-func TestRedisHyperLogLog_Name(t *testing.T) {
+func TestRedisList_Name(t *testing.T) {
 	name := test.RandomKey()
 	l := list.NewRedisList(conn, name)
 	assert.Equal(t, name, l.Name())
+}
+
+func TestRedisList_BlockingLeftPop(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+
+	blockingPopTest(t, l, leftBlockingPop)
+}
+
+func TestRedisList_BlockingRightPop(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+
+	blockingPopTest(t, l, rightBlockingPop)
 }
 
 func TestRedisList_LeftPop(t *testing.T) {
@@ -208,6 +204,39 @@ func TestRedisList_LeftPushX(t *testing.T) {
 
 	t.Run("verify list data", func(t *testing.T) {
 		verifySlice(t, l, wantCount, scenarios, reverseSlice)
+	})
+}
+
+func TestRedisList_Length(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+
+	t.Run("non-existing key", func(t *testing.T) {
+		len, err := l.Length()
+		assert.Nil(t, err)
+		assert.Zero(t, len)
+	})
+
+	t.Run("list with a single value", func(t *testing.T) {
+		l.LeftPush("abc")
+		len, err := l.Length()
+		assert.Nil(t, err)
+		assert.EqualValues(t, 1, len)
+	})
+
+	t.Run("list with several values", func(t *testing.T) {
+		l.LeftPush("def", "ghi")
+		len, err := l.Length()
+		assert.Nil(t, err)
+		assert.EqualValues(t, 3, len)
+	})
+
+	t.Run("after removing all items", func(t *testing.T) {
+		for i := 0; i < 3; i++ {
+			_, _ = l.LeftPop()
+		}
+		len, err := l.Length()
+		assert.Nil(t, err)
+		assert.EqualValues(t, 0, len)
 	})
 }
 
@@ -383,4 +412,152 @@ func TestMain(m *testing.M) {
 	defer conn.Close()
 
 	os.Exit(m.Run())
+}
+
+func clearList(l list.List) {
+	values, _ := l.Range(0, -1)
+	for range values {
+		_, _ = l.RightPop()
+	}
+}
+
+func verifySlice(t *testing.T, l list.List, wantCount int, scenarios []scenarioStruct, reverse bool) {
+	got, err := l.Range(0, -1)
+	assert.Nil(t, err)
+	assert.EqualValues(t, wantCount, len(got))
+	assert.Len(t, got, wantCount)
+	i := 0
+	for _, scenario := range scenarios {
+		if !scenario.wantErr {
+			for _, item := range scenario.add {
+				index := i
+				if reverse == reverseSlice {
+					index = len(got) - i - 1
+				}
+				test.AssertEqual(t, item, got[index])
+				i++
+			}
+		}
+	}
+}
+
+func blockingPopTest(t *testing.T, l list.List, blockingPop bool) {
+	defer clearList(l)
+
+	t.Run("list with one item", func(t *testing.T) {
+		_, _ = l.LeftPush("abc")
+		var item interface{}
+		var err error
+		if blockingPop == leftBlockingPop {
+			item, err = redis.String(l.BlockingLeftPop(0))
+		} else {
+			item, err = redis.String(l.BlockingRightPop(0))
+		}
+		assert.Nil(t, err)
+		assert.EqualValues(t, "abc", item)
+	})
+
+	t.Run("timeout tests", func(t *testing.T) {
+		scenarios := []struct {
+			name     string
+			duration time.Duration
+			wantErr  bool
+		}{
+			{
+				name:     "1s",
+				duration: time.Second,
+				wantErr:  false,
+			},
+			{
+				name:     "10s",
+				duration: 10 * time.Second,
+				wantErr:  false,
+			},
+			{
+				name:     "1s5ms",
+				duration: 1*time.Second + 5*time.Millisecond,
+				wantErr:  true,
+			},
+			{
+				name:     "5ns",
+				duration: 5 * time.Nanosecond,
+				wantErr:  true,
+			},
+			{
+				name:     "1s950ms",
+				duration: 1*time.Second + 950*time.Millisecond,
+				wantErr:  true,
+			},
+		}
+
+		for _, scenario := range scenarios {
+			t.Run(scenario.name, func(t *testing.T) {
+				_, _ = l.RightPush(1)
+
+				var err error
+				if blockingPop == leftBlockingPop {
+					_, err = redis.String(l.BlockingLeftPop(scenario.duration))
+				} else {
+					_, err = redis.String(l.BlockingRightPop(scenario.duration))
+				}
+				if scenario.wantErr {
+					assert.NotNil(t, err)
+					_, _ = l.RightPop()
+				} else {
+					assert.Nil(t, err)
+				}
+			})
+		}
+	})
+
+	t.Run("blocking test", func(t *testing.T) {
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			netConn, _ := net.Dial("tcp", internal.GetHostAndPort())
+
+			conn2 := redis.NewConn(netConn, 5*time.Second, 5*time.Second)
+			defer conn2.Close()
+
+			l2 := list.NewRedisList(conn2, l.Name())
+
+			var item interface{}
+			var err error
+			if blockingPop == leftBlockingPop {
+				item, err = l2.BlockingLeftPop(2 * time.Second)
+			} else {
+				item, err = l2.BlockingRightPop(2 * time.Second)
+			}
+			assert.Nil(t, err)
+			test.AssertEqual(t, 1, item)
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			time.Sleep(200 * time.Millisecond)
+			if blockingPop == leftBlockingPop {
+				_, _ = l.LeftPush(1)
+			} else {
+				_, _ = l.RightPush(1)
+			}
+		}()
+
+		wg.Wait()
+	})
+
+	t.Run("left or right test", func(t *testing.T) {
+		_, _ = l.RightPush(1, 2, 3, 4, 5)
+		if blockingPop == leftBlockingPop {
+			value, err := l.BlockingLeftPop(0)
+			assert.Nil(t, err)
+			test.AssertEqual(t, 1, value)
+		} else {
+			value, err := l.BlockingRightPop(0)
+			assert.Nil(t, err)
+			test.AssertEqual(t, 5, value)
+		}
+	})
 }
