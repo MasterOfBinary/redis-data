@@ -13,8 +13,8 @@ import (
 // HyperLogLog is a probabilistic data structure that counts the number of unique items
 // added to it.
 type HyperLogLog interface {
-	// Base returns the BaseRedisType.
-	Base() redistypes.BaseRedisType
+	// Base returns the Type.
+	Base() redistypes.Type
 
 	// Add implements the Redis command PFADD. It adds items to the HyperLogLog count. It returns an error or true
 	// if at least one internal register was altered, or false otherwise.
@@ -43,7 +43,7 @@ type HyperLogLog interface {
 
 type redisHyperLogLog struct {
 	conn redis.Conn
-	base redistypes.BaseRedisType
+	base redistypes.Type
 	sync singleflight.Group
 }
 
@@ -52,11 +52,11 @@ type redisHyperLogLog struct {
 func NewRedisHyperLogLog(conn redis.Conn, name string) HyperLogLog {
 	return &redisHyperLogLog{
 		conn: conn,
-		base: redistypes.NewBaseRedisType(conn, name),
+		base: redistypes.NewRedisType(conn, name),
 	}
 }
 
-func (r redisHyperLogLog) Base() redistypes.BaseRedisType {
+func (r redisHyperLogLog) Base() redistypes.Type {
 	return r.base
 }
 

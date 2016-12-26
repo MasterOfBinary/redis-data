@@ -37,12 +37,6 @@ func ExampleNewRedisHyperLogLog() {
 	// Output: Count: 0
 }
 
-func TestRedisHyperLogLog_Name(t *testing.T) {
-	name := test.RandomKey()
-	hll := hyperloglog.NewRedisHyperLogLog(conn, name)
-	assert.Equal(t, name, hll.Base().Name())
-}
-
 func TestRedisHyperLogLog_Add(t *testing.T) {
 	hll := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
 	defer test.DeleteKey(hll.Base().Name(), conn)

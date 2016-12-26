@@ -72,12 +72,6 @@ func ExampleList_Range() {
 	// [hello world]
 }
 
-func TestRedisList_Name(t *testing.T) {
-	name := test.RandomKey()
-	l := list.NewRedisList(conn, name)
-	assert.Equal(t, name, l.Base().Name())
-}
-
 func TestRedisList_BlockingLeftPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
 	defer test.DeleteKey(l.Base().Name(), conn)

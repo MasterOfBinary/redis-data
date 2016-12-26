@@ -14,8 +14,8 @@ import (
 
 // List is a Redis implementation of a linked list.
 type List interface {
-	// Base returns the BaseRedisType.
-	Base() redistypes.BaseRedisType
+	// Base returns the Type.
+	Base() redistypes.Type
 
 	// BlockingLeftPop implements the Redis command BLPOP. It works like LPOP but it
 	// blocks until an element exists in the list or timeout is reached. If the timeout
@@ -93,7 +93,7 @@ type List interface {
 
 type redisList struct {
 	conn redis.Conn
-	base redistypes.BaseRedisType
+	base redistypes.Type
 	sync singleflight.Group
 }
 
@@ -102,11 +102,11 @@ type redisList struct {
 func NewRedisList(conn redis.Conn, name string) List {
 	return &redisList{
 		conn: conn,
-		base: redistypes.NewBaseRedisType(conn, name),
+		base: redistypes.NewRedisType(conn, name),
 	}
 }
 
-func (r redisList) Base() redistypes.BaseRedisType {
+func (r redisList) Base() redistypes.Type {
 	return r.base
 }
 
