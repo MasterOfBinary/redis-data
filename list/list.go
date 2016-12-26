@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/MasterOfBinary/redistypes"
 	"github.com/MasterOfBinary/redistypes/internal"
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang/groupcache/singleflight"
@@ -13,8 +14,8 @@ import (
 
 // List is a Redis implementation of a linked list.
 type List interface {
-	// Name returns the name of the List.
-	Name() string
+	// Base returns the BaseRedisType.
+	Base() redistypes.BaseRedisType
 
 	// BlockingLeftPop implements the Redis command BLPOP. It works like LPOP but it
 	// blocks until an element exists in the list or timeout is reached. If the timeout
@@ -92,7 +93,7 @@ type List interface {
 
 type redisList struct {
 	conn redis.Conn
-	name string
+	base redistypes.BaseRedisType
 	sync singleflight.Group
 }
 
@@ -101,12 +102,12 @@ type redisList struct {
 func NewRedisList(conn redis.Conn, name string) List {
 	return &redisList{
 		conn: conn,
-		name: name,
+		base: redistypes.NewBaseRedisType(conn, name),
 	}
 }
 
-func (r redisList) Name() string {
-	return r.name
+func (r redisList) Base() redistypes.BaseRedisType {
+	return r.base
 }
 
 func (r *redisList) BlockingLeftPop(timeout time.Duration) (interface{}, error) {
@@ -115,7 +116,7 @@ func (r *redisList) BlockingLeftPop(timeout time.Duration) (interface{}, error) 
 		return nil, errors.New("Duration is not a multiple of one second")
 	}
 
-	values, err := redis.Values(r.conn.Do("BLPOP", r.name, seconds))
+	values, err := redis.Values(r.conn.Do("BLPOP", r.Base().Name(), seconds))
 	if err != nil {
 		return nil, err
 	} else if len(values) != 2 {
@@ -130,7 +131,7 @@ func (r *redisList) BlockingRightPop(timeout time.Duration) (interface{}, error)
 		return nil, errors.New("Duration is not a multiple of one second")
 	}
 
-	values, err := redis.Values(r.conn.Do("BRPOP", r.name, seconds))
+	values, err := redis.Values(r.conn.Do("BRPOP", r.Base().Name(), seconds))
 	if err != nil {
 		return nil, err
 	} else if len(values) != 2 {
@@ -140,37 +141,37 @@ func (r *redisList) BlockingRightPop(timeout time.Duration) (interface{}, error)
 }
 
 func (r *redisList) LeftPop() (interface{}, error) {
-	return r.conn.Do("LPOP", r.name)
+	return r.conn.Do("LPOP", r.Base().Name())
 }
 
 func (r *redisList) LeftPush(args ...interface{}) (uint64, error) {
-	args = internal.PrependInterface(r.name, args...)
+	args = internal.PrependInterface(r.Base().Name(), args...)
 	return redis.Uint64(r.conn.Do("LPUSH", args...))
 }
 
 func (r *redisList) LeftPushX(arg interface{}) (uint64, error) {
-	return redis.Uint64(r.conn.Do("LPUSHX", r.name, arg))
+	return redis.Uint64(r.conn.Do("LPUSHX", r.Base().Name(), arg))
 }
 
 func (r *redisList) Length() (uint64, error) {
-	return redis.Uint64(r.conn.Do("LLEN", r.name))
+	return redis.Uint64(r.conn.Do("LLEN", r.Base().Name()))
 }
 
 func (r *redisList) Range(start, stop int64) ([]interface{}, error) {
 	return redis.Values(r.sync.Do("LRANGE", func() (interface{}, error) {
-		return r.conn.Do("LRANGE", r.name, start, stop)
+		return r.conn.Do("LRANGE", r.Base().Name(), start, stop)
 	}))
 }
 
 func (r *redisList) RightPop() (interface{}, error) {
-	return r.conn.Do("RPOP", r.name)
+	return r.conn.Do("RPOP", r.Base().Name())
 }
 
 func (r *redisList) RightPush(args ...interface{}) (uint64, error) {
-	args = internal.PrependInterface(r.name, args...)
+	args = internal.PrependInterface(r.Base().Name(), args...)
 	return redis.Uint64(r.conn.Do("RPUSH", args...))
 }
 
 func (r *redisList) RightPushX(arg interface{}) (uint64, error) {
-	return redis.Uint64(r.conn.Do("RPUSHX", r.name, arg))
+	return redis.Uint64(r.conn.Do("RPUSHX", r.Base().Name(), arg))
 }

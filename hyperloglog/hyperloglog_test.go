@@ -40,12 +40,12 @@ func ExampleNewRedisHyperLogLog() {
 func TestRedisHyperLogLog_Name(t *testing.T) {
 	name := test.RandomKey()
 	hll := hyperloglog.NewRedisHyperLogLog(conn, name)
-	assert.Equal(t, name, hll.Name())
+	assert.Equal(t, name, hll.Base().Name())
 }
 
 func TestRedisHyperLogLog_Add(t *testing.T) {
 	hll := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
-	defer test.DeleteKey(hll.Name(),conn)
+	defer test.DeleteKey(hll.Base().Name(), conn)
 
 	scenarios := []struct {
 		name     string
@@ -85,7 +85,7 @@ func TestRedisHyperLogLog_Add(t *testing.T) {
 
 func TestRedisHyperLogLog_Count(t *testing.T) {
 	hll := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
-	defer test.DeleteKey(hll.Name(),conn)
+	defer test.DeleteKey(hll.Base().Name(), conn)
 
 	scenarios := []struct {
 		name  string
@@ -168,9 +168,9 @@ func TestRedisHyperLogLog_Merge(t *testing.T) {
 			args2 := test.StringsToInterfaceSlice(scenario.add2...)
 
 			hll1 := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
-			defer test.DeleteKey(hll1.Name(),conn)
+			defer test.DeleteKey(hll1.Base().Name(), conn)
 			hll2 := hyperloglog.NewRedisHyperLogLog(conn, test.RandomKey())
-			defer test.DeleteKey(hll2.Name(),conn)
+			defer test.DeleteKey(hll2.Base().Name(), conn)
 
 			_, err := hll1.Add(args1...)
 			assert.Nil(t, err)

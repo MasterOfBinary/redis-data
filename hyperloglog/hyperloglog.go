@@ -4,6 +4,7 @@
 package hyperloglog
 
 import (
+	"github.com/MasterOfBinary/redistypes"
 	"github.com/MasterOfBinary/redistypes/internal"
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang/groupcache/singleflight"
@@ -12,8 +13,8 @@ import (
 // HyperLogLog is a probabilistic data structure that counts the number of unique items
 // added to it.
 type HyperLogLog interface {
-	// Name returns the name of the HyperLogLog.
-	Name() string
+	// Base returns the BaseRedisType.
+	Base() redistypes.BaseRedisType
 
 	// Add implements the Redis command PFADD. It adds items to the HyperLogLog count. It returns an error or true
 	// if at least one internal register was altered, or false otherwise.
@@ -42,7 +43,7 @@ type HyperLogLog interface {
 
 type redisHyperLogLog struct {
 	conn redis.Conn
-	name string
+	base redistypes.BaseRedisType
 	sync singleflight.Group
 }
 
@@ -51,28 +52,28 @@ type redisHyperLogLog struct {
 func NewRedisHyperLogLog(conn redis.Conn, name string) HyperLogLog {
 	return &redisHyperLogLog{
 		conn: conn,
-		name: name,
+		base: redistypes.NewBaseRedisType(conn, name),
 	}
 }
 
-func (r redisHyperLogLog) Name() string {
-	return r.name
+func (r redisHyperLogLog) Base() redistypes.BaseRedisType {
+	return r.base
 }
 
 func (r redisHyperLogLog) Add(args ...interface{}) (bool, error) {
-	args = internal.PrependInterface(r.name, args...)
+	args = internal.PrependInterface(r.base.Name(), args...)
 	return redis.Bool(r.conn.Do("PFADD", args...))
 }
 
 func (r *redisHyperLogLog) Count() (uint64, error) {
 	return redis.Uint64(r.sync.Do("PFCOUNT", func() (interface{}, error) {
-		return r.conn.Do("PFCOUNT", r.name)
+		return r.conn.Do("PFCOUNT", r.base.Name())
 	}))
 }
 
 func (r *redisHyperLogLog) Merge(name string, other HyperLogLog) (HyperLogLog, error) {
-	_, err := redis.String(r.sync.Do("PFMERGE:"+name+":"+other.Name(), func() (interface{}, error) {
-		return r.conn.Do("PFMERGE", name, r.name, other.Name())
+	_, err := redis.String(r.sync.Do("PFMERGE:"+name+":"+other.Base().Name(), func() (interface{}, error) {
+		return r.conn.Do("PFMERGE", name, r.base.Name(), other.Base().Name())
 	}))
 
 	if err != nil {

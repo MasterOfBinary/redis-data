@@ -75,26 +75,26 @@ func ExampleList_Range() {
 func TestRedisList_Name(t *testing.T) {
 	name := test.RandomKey()
 	l := list.NewRedisList(conn, name)
-	assert.Equal(t, name, l.Name())
+	assert.Equal(t, name, l.Base().Name())
 }
 
 func TestRedisList_BlockingLeftPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
-	defer test.DeleteKey(l.Name(), conn)
+	defer test.DeleteKey(l.Base().Name(), conn)
 
 	blockingPopTest(t, l, leftBlockingPop)
 }
 
 func TestRedisList_BlockingRightPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
-	defer test.DeleteKey(l.Name(), conn)
+	defer test.DeleteKey(l.Base().Name(), conn)
 
 	blockingPopTest(t, l, rightBlockingPop)
 }
 
 func TestRedisList_LeftPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
-	defer test.DeleteKey(l.Name(), conn)
+	defer test.DeleteKey(l.Base().Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		item, err := l.LeftPop()
@@ -119,7 +119,7 @@ func TestRedisList_LeftPop(t *testing.T) {
 
 func TestRedisList_LeftPush(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
-	defer test.DeleteKey(l.Name(), conn)
+	defer test.DeleteKey(l.Base().Name(), conn)
 
 	scenarios := []scenarioStruct{
 		{
@@ -167,7 +167,7 @@ func TestRedisList_LeftPush(t *testing.T) {
 
 func TestRedisList_LeftPushX(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
-	defer test.DeleteKey(l.Name(), conn)
+	defer test.DeleteKey(l.Base().Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		count, err := l.LeftPushX("abc")
@@ -214,7 +214,7 @@ func TestRedisList_LeftPushX(t *testing.T) {
 
 func TestRedisList_Length(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
-	defer test.DeleteKey(l.Name(), conn)
+	defer test.DeleteKey(l.Base().Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		len, err := l.Length()
@@ -248,7 +248,7 @@ func TestRedisList_Length(t *testing.T) {
 
 func TestRedisList_Range(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
-	defer test.DeleteKey(l.Name(), conn)
+	defer test.DeleteKey(l.Base().Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		items, err := l.Range(0, -1)
@@ -293,7 +293,7 @@ func TestRedisList_Range(t *testing.T) {
 
 func TestRedisList_RightPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
-	defer test.DeleteKey(l.Name(), conn)
+	defer test.DeleteKey(l.Base().Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		item, err := l.RightPop()
@@ -318,7 +318,7 @@ func TestRedisList_RightPop(t *testing.T) {
 
 func TestRedisList_RightPush(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
-	defer test.DeleteKey(l.Name(), conn)
+	defer test.DeleteKey(l.Base().Name(), conn)
 
 	scenarios := []scenarioStruct{
 		{
@@ -366,7 +366,7 @@ func TestRedisList_RightPush(t *testing.T) {
 
 func TestRedisList_RightPushX(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
-	defer test.DeleteKey(l.Name(), conn)
+	defer test.DeleteKey(l.Base().Name(), conn)
 
 	t.Run("non-existing key", func(t *testing.T) {
 		count, err := l.RightPushX("abc")
@@ -522,7 +522,7 @@ func blockingPopTest(t *testing.T, l list.List, blockingPop bool) {
 			conn2 := redis.NewConn(netConn, 5*time.Second, 5*time.Second)
 			defer conn2.Close()
 
-			l2 := list.NewRedisList(conn2, l.Name())
+			l2 := list.NewRedisList(conn2, l.Base().Name())
 
 			var item interface{}
 			var err error
