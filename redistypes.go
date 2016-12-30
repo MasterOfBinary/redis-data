@@ -27,17 +27,33 @@ type Type interface {
 	// See https://redis.io/commands/exists.
 	Exists() (bool, error)
 
-	// Expire implements the Redis commands EXPIRE and PEXPIRE. It sets a timeout on the
-	// key, after which the key is deleted automatically. To remove the timeout, call the
-	// Persist() method. For more information about timeouts, see the documentation.
+	// Expire implements the Redis command EXPIRE. It sets a timeout (given in seconds)
+	// on the key, after which the key is deleted automatically. To remove the timeout,
+	// call the Persist method. For more information about timeouts, see the
+	// documentation.
 	//
-	// Expire uses the Redis command EXPIRE if timeout is a multiple of one second, or
-	// PEXPIRE if timeout has millisecond precision. If it has more precision than
-	// millisecond precision, an error is returned to avoid ambiguity in rounding.
+	// Expire uses the Redis command EXPIRE, which has second precision. If timeout
+	// has more precision than that, an error is returned to avoid ambiguity in rounding.
+	// For a more precise version of Expire, see PExpire.
+	//
 	// Expire returns true if the key exists and the timeout was set, or false otherwise.
 	//
 	// See https://redis.io/commands/expire.
 	Expire(timeout time.Duration) (bool, error)
+
+	// PExpire implements the Redis command PEXPIRE. It sets a timeout (given in
+	// milliseconds) on the key, after which the key is deleted automatically. To
+	// remove the timeout, call the Persist method. For more information about timeouts,
+	// see the documentation.
+	//
+	// PExpire uses the Redis command PEXPIRE, which has millisecond precision. If timeout
+	// has more precision than that, an error is returned to avoid ambiguity in rounding.
+	// For a less precise version of PExpire, see Expire.
+	//
+	// PExpire returns true if the key exists and the timeout was set, or false otherwise.
+	//
+	// See https://redis.io/commands/pexpire.
+	PExpire(timeout time.Duration) (bool, error)
 
 	// Persist implements the Redis command PERSIST. It causes a volatile key to persist.
 	//
@@ -84,16 +100,20 @@ func (r *redisType) Exists() (bool, error) {
 
 func (r *redisType) Expire(timeout time.Duration) (bool, error) {
 	seconds := int64(timeout.Seconds())
-	ms := int64(timeout.Nanoseconds() / 1000000)
-	if timeout.Nanoseconds()-ms*time.Millisecond.Nanoseconds() != 0 {
+	if timeout.Nanoseconds()-seconds*time.Second.Nanoseconds() != 0 {
 		return false, errors.New("Duration is not a multiple of one second")
 	}
 
-	if seconds*1000 != ms {
-		return redis.Bool(r.conn.Do("PEXPIRE", r.name, ms))
+	return redis.Bool(r.conn.Do("EXPIRE", r.name, seconds))
+}
+
+func (r *redisType) PExpire(timeout time.Duration) (bool, error) {
+	ms := int64(timeout.Nanoseconds() / 1000000)
+	if timeout.Nanoseconds()-ms*time.Millisecond.Nanoseconds() != 0 {
+		return false, errors.New("Duration is not a multiple of one millisecond")
 	}
 
-	return redis.Bool(r.conn.Do("EXPIRE", r.name, seconds))
+	return redis.Bool(r.conn.Do("PEXPIRE", r.name, ms))
 }
 
 func (r *redisType) Persist() (bool, error) {
@@ -109,7 +129,7 @@ func (r *redisType) Rename(newkey string) error {
 }
 
 func (r *redisType) RenameNX(newkey string) (bool, error) {
-	success, err := redis.Bool(r.conn.Do("RENAMENX", r.name))
+	success, err := redis.Bool(r.conn.Do("RENAMENX", r.name, newkey))
 	if success {
 		r.name = newkey
 	}
