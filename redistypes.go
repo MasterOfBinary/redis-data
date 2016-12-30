@@ -8,10 +8,10 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
-// BaseRedisType is an interface containing methods that every Redis type supports.
-// These methods operate on keys in Redis with name equal to Name(), and they do not
+// Type is an interface containing methods that every Redis type supports. These
+// methods operate on keys in Redis with name equal to Name(), and they do not
 // depend on the type of value stored in the key.
-type BaseRedisType interface {
+type Type interface {
 	// Name returns the name of the key in Redis.
 	Name() string
 
@@ -44,13 +44,13 @@ type BaseRedisType interface {
 	// See https://redis.io/commands/persist.
 	Persist() (bool, error)
 
-	// Rename renames the key to newkey, both in the BaseRedisType and in Redis. If
+	// Rename renames the key to newkey, both in the Type and in Redis. If
 	// newkey already exists in Redis, it is overwritten.
 	//
 	// See https://redis.io/commands/rename.
 	Rename(newkey string) error
 
-	// RenameNX renames the key to newkey, both in the BaseRedisType and in Redis. If
+	// RenameNX renames the key to newkey, both in the Type and in Redis. If
 	// the key was renamed successfully, true is returned. If newkey already exists
 	// in Redis, false is returned.
 	//
@@ -58,31 +58,31 @@ type BaseRedisType interface {
 	RenameNX(newkey string) (bool, error)
 }
 
-type baseTypeImpl struct {
+type redisType struct {
 	conn redis.Conn
 	name string
 }
 
-func NewBaseRedisType(conn redis.Conn, name string) BaseRedisType {
-	return &baseTypeImpl{
+func NewRedisType(conn redis.Conn, name string) Type {
+	return &redisType{
 		conn: conn,
 		name: name,
 	}
 }
 
-func (r baseTypeImpl) Name() string {
+func (r redisType) Name() string {
 	return r.name
 }
 
-func (r *baseTypeImpl) Delete() (bool, error) {
+func (r *redisType) Delete() (bool, error) {
 	return redis.Bool(r.conn.Do("DEL", r.name))
 }
 
-func (r *baseTypeImpl) Exists() (bool, error) {
+func (r *redisType) Exists() (bool, error) {
 	return redis.Bool(r.conn.Do("EXISTS", r.name))
 }
 
-func (r *baseTypeImpl) Expire(timeout time.Duration) (bool, error) {
+func (r *redisType) Expire(timeout time.Duration) (bool, error) {
 	seconds := int64(timeout.Seconds())
 	ms := int64(timeout.Nanoseconds() / 1000000)
 	if timeout.Nanoseconds()-ms*time.Millisecond.Nanoseconds() != 0 {
@@ -96,11 +96,11 @@ func (r *baseTypeImpl) Expire(timeout time.Duration) (bool, error) {
 	return redis.Bool(r.conn.Do("EXPIRE", r.name, seconds))
 }
 
-func (r *baseTypeImpl) Persist() (bool, error) {
+func (r *redisType) Persist() (bool, error) {
 	return redis.Bool(r.conn.Do("PERSIST", r.name))
 }
 
-func (r *baseTypeImpl) Rename(newkey string) error {
+func (r *redisType) Rename(newkey string) error {
 	_, err := r.conn.Do("RENAME", r.name, newkey)
 	if err != nil {
 		r.name = newkey
@@ -108,7 +108,7 @@ func (r *baseTypeImpl) Rename(newkey string) error {
 	return err
 }
 
-func (r *baseTypeImpl) RenameNX(newkey string) (bool, error) {
+func (r *redisType) RenameNX(newkey string) (bool, error) {
 	success, err := redis.Bool(r.conn.Do("RENAMENX", r.name))
 	if success {
 		r.name = newkey
