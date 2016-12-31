@@ -140,6 +140,12 @@ type List interface {
 	//
 	// See https://redis.io/commands/rpushx.
 	RightPushX(arg interface{}) (uint64, error)
+
+	// Set implements the Redis command LSET. It sets the value at the specified index
+	// to value. For more information about the index, see Index.
+	//
+	// See https://redis.io/commands/lset.
+	Set(index int64, value interface{}) error
 }
 
 type redisList struct {
@@ -252,4 +258,9 @@ func (r *redisList) RightPush(args ...interface{}) (uint64, error) {
 
 func (r *redisList) RightPushX(arg interface{}) (uint64, error) {
 	return redis.Uint64(r.conn.Do("RPUSHX", r.Base().Name(), arg))
+}
+
+func (r *redisList) Set(index int64, value interface{}) error {
+	_, err := r.conn.Do("LSET", r.Base().Name(), index, value)
+	return err
 }

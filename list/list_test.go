@@ -837,3 +837,29 @@ func blockingPopTest(t *testing.T, l list.List, blockingPop bool) {
 		}
 	})
 }
+
+func TestRedisList_Set(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+	defer l.Base().Delete()
+
+	t.Run("non-existing key", func(t *testing.T) {
+		err := l.Set(0, 1)
+		assert.NotNil(t, err)
+	})
+
+	_, _ = l.RightPush(1, 2, 3)
+
+	t.Run("index out of range", func(t *testing.T) {
+		err := l.Set(5, 1)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("set", func(t *testing.T) {
+		err := l.Set(1, 1)
+		assert.Nil(t, err)
+
+		values, _ := redis.Ints(l.Range(1, 1))
+		assert.NotEmpty(t, values)
+		assert.EqualValues(t, 1, values[0])
+	})
+}
