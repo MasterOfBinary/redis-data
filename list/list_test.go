@@ -478,6 +478,45 @@ func TestRedisList_Range(t *testing.T) {
 	})
 }
 
+func TestRedisList_Remove(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+	defer l.Base().Delete()
+
+	t.Run("non-existing key", func(t *testing.T) {
+		values, err := l.Remove(0, 1)
+		assert.Nil(t, err)
+		assert.Zero(t, values)
+	})
+
+	_, _ = l.RightPush(100, 1, 2, 3, 4, 5, 4, 3, 2, 1, 100, 101, 100)
+
+	t.Run("remove all", func(t *testing.T) {
+		removed, err := l.Remove(0, 1)
+		assert.Nil(t, err)
+		assert.EqualValues(t, 2, removed)
+	})
+
+	t.Run("remove from left", func(t *testing.T) {
+		removed, err := l.Remove(1, 100)
+		assert.Nil(t, err)
+		assert.EqualValues(t, 1, removed)
+
+		values, err := redis.Ints(l.Range(0, 0))
+		assert.NotEmpty(t, values)
+		assert.EqualValues(t, 2, values[0])
+	})
+
+	t.Run("remove from right", func(t *testing.T) {
+		removed, err := l.Remove(-1, 100)
+		assert.Nil(t, err)
+		assert.EqualValues(t, 1, removed)
+
+		values, err := redis.Ints(l.Range(-1, -1))
+		assert.NotEmpty(t, values)
+		assert.EqualValues(t, 101, values[0])
+	})
+}
+
 func TestRedisList_RightPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
 	defer l.Base().Delete()

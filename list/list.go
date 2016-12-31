@@ -104,6 +104,17 @@ type List interface {
 	// See https://redis.io/commands/lrange.
 	Range(start, stop int64) ([]interface{}, error)
 
+	// Remove implements the Redis command LREM. It removes a number of occurrences of
+	// value from the list. If count == 0, it removes all occurrences. If count > 0,
+	// it removes the first count occurrences, starting from the beginning of the list.
+	// If count < 0, it removes the first -count occurrences, starting from the end of
+	// the list.
+	//
+	// Remove returns the number of values removed, or an error.
+	//
+	// See https://redis.io/commands/lrem.
+	Remove(count int64, value interface{}) (uint64, error)
+
 	// RightPop implements the Redis command RPOP. It pops the rightmost value from the
 	// list and returns it. If no such value exists, it returns nil.
 	//
@@ -220,6 +231,10 @@ func (r *redisList) Length() (uint64, error) {
 
 func (r *redisList) Range(start, stop int64) ([]interface{}, error) {
 	return redis.Values(r.conn.Do("LRANGE", r.Base().Name(), start, stop))
+}
+
+func (r *redisList) Remove(count int64, value interface{}) (uint64, error) {
+	return redis.Uint64(r.conn.Do("LREM", r.Base().Name(), count, value))
 }
 
 func (r *redisList) RightPopLeftPush(destination List) (interface{}, error) {
