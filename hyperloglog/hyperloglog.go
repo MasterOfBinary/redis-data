@@ -7,7 +7,6 @@ import (
 	"github.com/MasterOfBinary/redistypes"
 	"github.com/MasterOfBinary/redistypes/internal"
 	"github.com/garyburd/redigo/redis"
-	"github.com/golang/groupcache/singleflight"
 )
 
 // HyperLogLog is a probabilistic data structure that counts the number of unique items
@@ -25,17 +24,11 @@ type HyperLogLog interface {
 	// Count implements the Redis command PFCOUNT. It returns the count of unique items added to the HyperLogLog,
 	// or an error if something went wrong.
 	//
-	// Count uses a single flight group to ensure the command is only run once for each call to Count for a single
-	// HyperLogLog.
-	//
 	// See https://redis.io/commands/pfcount.
 	Count() (uint64, error)
 
 	// Merge implements the Redis command PFMERGE. It merges the HyperLogLog with other to produce a new
 	// HyperLogLog with given name. It returns an error or the newly created HyperLogLog.
-	//
-	// Merge uses a single flight group to ensure the PFMERGE command is only in-flight once at a time for each
-	// call to Merge on the same HyperLogLog and the same name and other.Name().
 	//
 	// See https://redis.io/commands/pfmerge.
 	Merge(name string, other HyperLogLog) (HyperLogLog, error)
@@ -44,7 +37,6 @@ type HyperLogLog interface {
 type redisHyperLogLog struct {
 	conn redis.Conn
 	base redistypes.Type
-	sync singleflight.Group
 }
 
 // NewRedisHyperLogLog creates a Redis implementation of HyperLogLog given redigo connection conn and name. The
@@ -66,15 +58,11 @@ func (r redisHyperLogLog) Add(args ...interface{}) (bool, error) {
 }
 
 func (r *redisHyperLogLog) Count() (uint64, error) {
-	return redis.Uint64(r.sync.Do("PFCOUNT", func() (interface{}, error) {
-		return r.conn.Do("PFCOUNT", r.base.Name())
-	}))
+	return redis.Uint64(r.conn.Do("PFCOUNT", r.base.Name()))
 }
 
 func (r *redisHyperLogLog) Merge(name string, other HyperLogLog) (HyperLogLog, error) {
-	_, err := redis.String(r.sync.Do("PFMERGE:"+name+":"+other.Base().Name(), func() (interface{}, error) {
-		return r.conn.Do("PFMERGE", name, r.base.Name(), other.Base().Name())
-	}))
+	_, err := redis.String(r.conn.Do("PFMERGE", name, r.base.Name(), other.Base().Name()))
 
 	if err != nil {
 		return nil, err
