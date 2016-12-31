@@ -863,3 +863,36 @@ func TestRedisList_Set(t *testing.T) {
 		assert.EqualValues(t, 1, values[0])
 	})
 }
+
+func TestRedisList_Trim(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+	defer l.Base().Delete()
+
+	t.Run("non-existing key", func(t *testing.T) {
+		err := l.Trim(0, -1)
+		assert.Nil(t, err)
+	})
+
+	_, _ = l.RightPush(1, 2, 3, 4, 5)
+
+	t.Run("trim left", func(t *testing.T) {
+		err := l.Trim(0, 1)
+		assert.Nil(t, err)
+
+		values, _ := redis.Ints(l.Range(0, -1))
+		assert.Len(t, values, 2)
+		assert.EqualValues(t, 1, values[0])
+		assert.EqualValues(t, 2, values[1])
+	})
+	_, _ = l.RightPush(1, 2, 3, 4, 5)
+
+	t.Run("trim right", func(t *testing.T) {
+		err := l.Trim(-2, -1)
+		assert.Nil(t, err)
+
+		values, _ := redis.Ints(l.Range(0, -1))
+		assert.Len(t, values, 2)
+		assert.EqualValues(t, 4, values[0])
+		assert.EqualValues(t, 5, values[1])
+	})
+}

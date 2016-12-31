@@ -146,6 +146,13 @@ type List interface {
 	//
 	// See https://redis.io/commands/lset.
 	Set(index int64, value interface{}) error
+
+	// Trim implements the Redis command LTRIM. It trims the list so it contains only
+	// the elements from start to stop. Negative values denote values starting from the
+	// end of the list, as explained in the documentation.
+	//
+	// See https://redis.io/commands/ltrim.
+	Trim(start, stop int64) error
 }
 
 type redisList struct {
@@ -262,5 +269,10 @@ func (r *redisList) RightPushX(arg interface{}) (uint64, error) {
 
 func (r *redisList) Set(index int64, value interface{}) error {
 	_, err := r.conn.Do("LSET", r.Base().Name(), index, value)
+	return err
+}
+
+func (r *redisList) Trim(start, stop int64) error {
+	_, err := r.conn.Do("LTRIM", r.Base().Name(), start, stop)
 	return err
 }

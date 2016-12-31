@@ -12,7 +12,7 @@ Features
 
 Go implementations of the following data types in Redis:
 
-1. List (partial)
+1. List
 2. HyperLogLog
 
 More to come!
