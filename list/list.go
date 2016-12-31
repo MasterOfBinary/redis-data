@@ -9,7 +9,6 @@ import (
 	"github.com/MasterOfBinary/redistypes"
 	"github.com/MasterOfBinary/redistypes/internal"
 	"github.com/garyburd/redigo/redis"
-	"github.com/golang/groupcache/singleflight"
 )
 
 // List is a Redis implementation of a linked list.
@@ -50,21 +49,30 @@ type List interface {
 	// See https://redis.io/commands/brpoplpush.
 	BlockingRightPopLeftPush(destination List, timeout time.Duration) (interface{}, error)
 
+	// Index implements the Redis command LINDEX. It returns the value at index in
+	// the list. The index is 0-based, with the first index 0. Negative numbers
+	// denote indices starting at the end of the list, as described by the documentation.
+	//
+	// See See https://redis.io/commands/lindex.
+	Index(index int64) (interface{}, error)
+
 	// LeftPop implements the Redis command LPOP. It pops the leftmost value from the
 	// list and returns it. If no such value exists, it returns nil.
 	//
 	// See https://redis.io/commands/lpop.
 	LeftPop() (interface{}, error)
 
-	// LeftPush implements the Redis command LPUSH. It pushes one or more values onto the left of the list.
-	// It returns an error or the total number of values in the list.
+	// LeftPush implements the Redis command LPUSH. It pushes one or more values onto
+	// the left of the list. It returns an error or the total number of values in the
+	// list.
 	//
 	// See https://redis.io/commands/lpush.
 	LeftPush(args ...interface{}) (uint64, error)
 
-	// LeftPushX implements the Redis command LPUSHX. It pushes one value onto the left of a list that
-	// already exists. It returns an error or the total number of values in the list. If the list doesn't
-	// already exist, it is not created and 0 is returned.
+	// LeftPushX implements the Redis command LPUSHX. It pushes one value onto the left
+	// of a list that already exists. It returns an error or the total number of values
+	// in the list. If the list doesn't already exist, it is not created and 0 is
+	// returned.
 	//
 	// See https://redis.io/commands/lpushx.
 	LeftPushX(arg interface{}) (uint64, error)
@@ -75,28 +83,35 @@ type List interface {
 	// See https://redis.io/commands/llen.
 	Length() (uint64, error)
 
-	// Range implements the Redis command LRANGE. It returns a range of values in the list, starting at
-	// index start and ending at index stop. If end is negative, it returns all values from start to the
-	// end of the list.
+	// Range implements the Redis command LRANGE. It returns a range of values in the
+	// list, starting at index start and ending at index stop. If end is negative, it
+	// returns all values from start to the end of the list.
 	//
 	// See https://redis.io/commands/lrange.
 	Range(start, stop int64) ([]interface{}, error)
 
-	// RightPop implements the Redis command RPOP. It pops the rightmost value from the list and returns it.
-	// If no such value exists, it returns nil.
+	// RightPop implements the Redis command RPOP. It pops the rightmost value from the
+	// list and returns it. If no such value exists, it returns nil.
 	//
 	// See https://redis.io/commands/rpop.
 	RightPop() (interface{}, error)
 
-	// RightPush implements the Redis command RPUSH. It pushes one or more values onto the right of the list.
-	// It returns an error or the total number of values in the list.
+	// RightPopLeftPush implements the Redis command RPOPLPUSH. It pops the value on the
+	// right of the list and pushes it on the left of destination.
+	//
+	// See https://redis.io/commands/rpoplpush.
+	RightPopLeftPush(destination List) (interface{}, error)
+
+	// RightPush implements the Redis command RPUSH. It pushes one or more values onto
+	// the right of the list. It returns an error or the total number of values in the list.
 	//
 	// See https://redis.io/commands/rpush.
 	RightPush(args ...interface{}) (uint64, error)
 
-	// RightPushX implements the Redis command RPUSHX. It pushes one value onto the right of a list that
-	// already exists. It returns an error or the total number of values in the list. If the list doesn't
-	// already exist, it is not created and 0 is returned.
+	// RightPushX implements the Redis command RPUSHX. It pushes one value onto the
+	// right of a list that already exists. It returns an error or the total number of
+	// values in the list. If the list doesn't already exist, it is not created and 0 is
+	// returned.
 	//
 	// See https://redis.io/commands/rpushx.
 	RightPushX(arg interface{}) (uint64, error)
@@ -105,7 +120,6 @@ type List interface {
 type redisList struct {
 	conn redis.Conn
 	base redistypes.Type
-	sync singleflight.Group
 }
 
 // NewRedisList creates a Redis implementation of List given redigo connection conn and name. The
@@ -165,6 +179,10 @@ func (r *redisList) BlockingRightPopLeftPush(destination List, timeout time.Dura
 	return value, err
 }
 
+func (r *redisList) Index(index int64) (interface{}, error) {
+	return r.conn.Do("LINDEX", r.Base().Name(), index)
+}
+
 func (r *redisList) LeftPop() (interface{}, error) {
 	return r.conn.Do("LPOP", r.Base().Name())
 }
@@ -183,9 +201,11 @@ func (r *redisList) Length() (uint64, error) {
 }
 
 func (r *redisList) Range(start, stop int64) ([]interface{}, error) {
-	return redis.Values(r.sync.Do("LRANGE", func() (interface{}, error) {
-		return r.conn.Do("LRANGE", r.Base().Name(), start, stop)
-	}))
+	return redis.Values(r.conn.Do("LRANGE", r.Base().Name(), start, stop))
+}
+
+func (r *redisList) RightPopLeftPush(destination List) (interface{}, error) {
+	return r.conn.Do("RPOPLPUSH", r.Base().Name(), destination.Base().Name())
 }
 
 func (r *redisList) RightPop() (interface{}, error) {

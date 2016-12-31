@@ -220,6 +220,31 @@ func TestRedisList_BlockingRightPopLeftPush(t *testing.T) {
 	})
 }
 
+func TestRedisList_Index(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+	defer l.Base().Delete()
+
+	t.Run("non-existing key", func(t *testing.T) {
+		item, err := l.Index(0)
+		assert.Nil(t, err)
+		assert.Nil(t, item)
+	})
+
+	t.Run("list with one item", func(t *testing.T) {
+		_, _ = l.RightPush(1)
+		value, err := redis.Int(l.Index(0))
+		assert.Nil(t, err)
+		assert.EqualValues(t, 1, value)
+	})
+
+	t.Run("list with multiple items", func(t *testing.T) {
+		_, _ = l.RightPush(2, 3)
+		value, err := redis.Int(l.Index(-1))
+		assert.Nil(t, err)
+		assert.EqualValues(t, 3, value)
+	})
+}
+
 func TestRedisList_LeftPop(t *testing.T) {
 	l := list.NewRedisList(conn, test.RandomKey())
 	defer l.Base().Delete()
@@ -441,6 +466,53 @@ func TestRedisList_RightPop(t *testing.T) {
 		item, err := redis.String(l.RightPop())
 		assert.Nil(t, err)
 		assert.EqualValues(t, "ghi", item)
+	})
+}
+
+func TestRedisList_RightPopLeftPush(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+	defer l.Base().Delete()
+
+	t.Run("list with one item", func(t *testing.T) {
+		l2 := list.NewRedisList(conn, test.RandomKey())
+		defer l2.Base().Delete()
+
+		_, _ = l.LeftPush("abc")
+		value, err := redis.String(l.RightPopLeftPush(l2))
+		assert.Nil(t, err)
+		assert.EqualValues(t, "abc", value)
+
+		values, _ := redis.Values(l2.Range(0, -1))
+		assert.Len(t, values, 1)
+		value, _ = redis.String(values[0], nil)
+		assert.EqualValues(t, "abc", value)
+	})
+
+	t.Run("list with several items", func(t *testing.T) {
+		l2 := list.NewRedisList(conn, test.RandomKey())
+		defer l2.Base().Delete()
+
+		_, _ = l.RightPush("abc", "def", "ghi")
+		value, err := redis.String(l.RightPopLeftPush(l2))
+		assert.Nil(t, err)
+		assert.EqualValues(t, "ghi", value)
+
+		values, _ := redis.Values(l2.Range(0, -1))
+		assert.Len(t, values, 1)
+		value, _ = redis.String(values[0], nil)
+		assert.EqualValues(t, "ghi", value)
+	})
+
+	t.Run("same list", func(t *testing.T) {
+		_, _ = l.RightPush("abc", "def", "ghi")
+		value, err := redis.String(l.RightPopLeftPush(l))
+		assert.Nil(t, err)
+		assert.EqualValues(t, "ghi", value)
+
+		values, _ := redis.Values(l.Range(0, 0))
+		assert.Len(t, values, 1)
+		value, _ = redis.String(values[0], nil)
+		assert.EqualValues(t, "ghi", value)
 	})
 }
 
