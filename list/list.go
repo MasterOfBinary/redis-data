@@ -48,7 +48,7 @@ type List interface {
 	// returned.
 	//
 	// See https://redis.io/commands/brpoplpush.
-	BlockingRightPopLeftPush(destination List,timeout time.Duration) (interface{}, error)
+	BlockingRightPopLeftPush(destination List, timeout time.Duration) (interface{}, error)
 
 	// LeftPop implements the Redis command LPOP. It pops the leftmost value from the
 	// list and returns it. If no such value exists, it returns nil.
