@@ -39,6 +39,17 @@ type List interface {
 	// See https://redis.io/commands/brpop.
 	BlockingRightPop(timeout time.Duration) (interface{}, error)
 
+	// BlockingRightPopLeftPush implements the Redis command BRPOPLPUSH. It works like
+	// RightPopLeftPush except it blocks until timeout is reached. A timeout of 0 can
+	// be used to block indefinitely.
+	//
+	// Since Redis specifies timeout to be in seconds, millisecond-level precision is
+	// not possible. If the timeout is not a multiple of one second, an error will be
+	// returned.
+	//
+	// See https://redis.io/commands/brpoplpush.
+	BlockingRightPopLeftPush(destination List,timeout time.Duration) (interface{}, error)
+
 	// LeftPop implements the Redis command LPOP. It pops the leftmost value from the
 	// list and returns it. If no such value exists, it returns nil.
 	//
@@ -138,6 +149,20 @@ func (r *redisList) BlockingRightPop(timeout time.Duration) (interface{}, error)
 		return nil, errors.New("Unexpected response length")
 	}
 	return values[1], err
+}
+
+func (r *redisList) BlockingRightPopLeftPush(destination List, timeout time.Duration) (interface{}, error) {
+	seconds := int64(timeout.Seconds())
+	if timeout.Nanoseconds()-seconds*time.Second.Nanoseconds() != 0 {
+		return nil, errors.New("Duration is not a multiple of one second")
+	}
+
+	value, err := r.conn.Do("BRPOPLPUSH", r.Base().Name(), destination.Base().Name(), seconds)
+	if err != nil {
+		return nil, err
+	}
+
+	return value, err
 }
 
 func (r *redisList) LeftPop() (interface{}, error) {
