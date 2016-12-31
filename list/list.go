@@ -11,6 +11,13 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+type Adjacency string
+
+const (
+	Before Adjacency = "BEFORE"
+	After            = "AFTER"
+)
+
 // List is a Redis implementation of a linked list.
 type List interface {
 	// Base returns the base Type.
@@ -53,8 +60,15 @@ type List interface {
 	// the list. The index is 0-based, with the first index 0. Negative numbers
 	// denote indices starting at the end of the list, as described by the documentation.
 	//
-	// See See https://redis.io/commands/lindex.
+	// See https://redis.io/commands/lindex.
 	Index(index int64) (interface{}, error)
+
+	// Insert implements the Redis command LINSERT. It inserts a value either before
+	// or after the pivot, depending on adj. It returns the new length of the list,
+	// or -1 if the pivot value wasn't found.
+	//
+	// See https://redis.io/commands/linsert.
+	Insert(adj Adjacency, pivot interface{}, value interface{}) (int64, error)
 
 	// LeftPop implements the Redis command LPOP. It pops the leftmost value from the
 	// list and returns it. If no such value exists, it returns nil.
@@ -181,6 +195,10 @@ func (r *redisList) BlockingRightPopLeftPush(destination List, timeout time.Dura
 
 func (r *redisList) Index(index int64) (interface{}, error) {
 	return r.conn.Do("LINDEX", r.Base().Name(), index)
+}
+
+func (r *redisList) Insert(adj Adjacency, pivot interface{}, value interface{}) (int64, error) {
+	return redis.Int64(r.conn.Do("LINSERT", r.Base().Name(), string(adj), pivot, value))
 }
 
 func (r *redisList) LeftPop() (interface{}, error) {

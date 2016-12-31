@@ -225,9 +225,9 @@ func TestRedisList_Index(t *testing.T) {
 	defer l.Base().Delete()
 
 	t.Run("non-existing key", func(t *testing.T) {
-		item, err := l.Index(0)
+		value, err := l.Index(0)
 		assert.Nil(t, err)
-		assert.Nil(t, item)
+		assert.Nil(t, value)
 	})
 
 	t.Run("list with one item", func(t *testing.T) {
@@ -242,6 +242,40 @@ func TestRedisList_Index(t *testing.T) {
 		value, err := redis.Int(l.Index(-1))
 		assert.Nil(t, err)
 		assert.EqualValues(t, 3, value)
+	})
+}
+
+func TestRedisList_Insert(t *testing.T) {
+	l := list.NewRedisList(conn, test.RandomKey())
+	defer l.Base().Delete()
+
+	t.Run("non-existing key", func(t *testing.T) {
+		value, err := l.Insert(list.Before, 1, 1)
+		assert.Nil(t, err)
+		assert.EqualValues(t, 0, value)
+	})
+
+	t.Run("before", func(t *testing.T) {
+		_, _ = l.RightPush(1, 2, 3)
+		value, err := l.Insert(list.Before, 2, 5)
+		assert.Nil(t, err)
+		assert.EqualValues(t, 4, value)
+
+		r, _ := redis.Ints(l.Range(1, 1))
+		assert.Len(t, r, 1)
+		assert.EqualValues(t, 5, r[0])
+	})
+
+	t.Run("after", func(t *testing.T) {
+		_, _ = l.Base().Delete()
+		_, _ = l.RightPush(1, 2, 3)
+		value, err := l.Insert(list.After, 2, 5)
+		assert.Nil(t, err)
+		assert.EqualValues(t, 4, value)
+
+		r, _ := redis.Ints(l.Range(2, 2))
+		assert.Len(t, r, 1)
+		assert.EqualValues(t, 5, r[0])
 	})
 }
 
