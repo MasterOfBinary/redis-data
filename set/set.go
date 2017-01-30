@@ -17,6 +17,12 @@ type Set interface {
 	//
 	// See https://redis.io/commands/sadd.
 	Add(values ...interface{}) (uint64, error)
+
+	// Card implements the Redis command SCARD. It returns the cardinality of the
+	// set, or 0 if the set doesn't exist.
+	//
+	// See https://redis.io/commands/scard.
+	Card() (uint64, error)
 }
 
 type redisSet struct {
@@ -40,4 +46,8 @@ func (r redisSet) Base() redistypes.Type {
 func (r *redisSet) Add(values ...interface{}) (uint64, error) {
 	values = internal.PrependInterface(r.Base().Name(), values...)
 	return redis.Uint64(r.conn.Do("SADD", values...))
+}
+
+func (r *redisSet) Card() (uint64, error) {
+	return redis.Uint64(r.conn.Do("SCARD", r.Base().Name()))
 }

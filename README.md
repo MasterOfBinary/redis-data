@@ -15,6 +15,7 @@ Go implementations of the following data types in Redis:
 
 1. List
 2. HyperLogLog
+3. Set (in progress)
 
 More to come!
 

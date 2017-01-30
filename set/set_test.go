@@ -43,6 +43,25 @@ func TestRedisSet_Add(t *testing.T) {
 	})
 }
 
+func TestRedisSet_Card(t *testing.T) {
+	s := set.NewRedisSet(conn, test.RandomKey())
+	defer s.Base().Delete()
+
+	t.Run("non-existing key", func(t *testing.T) {
+		value, err := s.Card()
+		assert.Nil(t, err)
+		assert.EqualValues(t, 0, value)
+	})
+
+	t.Run("existing key", func(t *testing.T) {
+		_, _ = s.Base().Delete()
+		_, _ = s.Add(1, 2, 3)
+		value, err := s.Card()
+		assert.Nil(t, err)
+		assert.EqualValues(t, 3, value)
+	})
+}
+
 func TestMain(m *testing.M) {
 	netConn, err := net.Dial("tcp", internal.GetHostAndPort())
 	if err != nil {
