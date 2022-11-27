@@ -8,6 +8,8 @@ Redistypes
 
 Redistypes is a very thin wrapper around redigo that provides a convenient way to use Redis's data types in Go.
 
+*NOTE: this project has been archived because I don't have time to work on it.*
+
 Features
 --------
 
